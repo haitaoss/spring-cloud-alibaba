@@ -1,7 +1,6 @@
 package cn.haitaoss;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -17,6 +16,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @EnableAutoConfiguration
-@EnableDiscoveryClient
+// @EnableDiscoveryClient
 public @interface MyAnnotation {
 }
