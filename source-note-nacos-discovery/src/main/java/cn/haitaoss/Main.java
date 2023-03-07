@@ -1,6 +1,7 @@
 package cn.haitaoss;
 
 import com.alibaba.cloud.nacos.registry.NacosAutoServiceRegistration;
+import org.apache.catalina.connector.Connector;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.context.WebServerInitializedEvent;
@@ -13,6 +14,8 @@ import org.springframework.context.support.AbstractApplicationContext;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextListener;
+import java.lang.reflect.Field;
+import java.util.StringTokenizer;
 
 /**
  * @author haitao.chen
@@ -51,7 +54,37 @@ public class Main extends SpringBootServletInitializer {
                 .sources(Main.class)
                 .sources(NacosRegistry.class);  // 执行 nacos 注册服务的方法
     }
+}
 
+class ObjectUtil {
+
+    public static Object getFieldValue(Object target, String str) {
+        try {
+            StringTokenizer stringTokenizer = new StringTokenizer(str, ".");
+            while (stringTokenizer.hasMoreElements()) {
+                String field = stringTokenizer.nextElement().toString();
+                System.out.println("field = " + field);
+
+                target = getField(target.getClass(), field).get(target);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return target;
+    }
+
+    private static Field getField(Class clazz, String name) {
+        if (clazz == null) {
+            return null;
+        }
+        try {
+            Field declaredField = clazz.getDeclaredField(name);
+            declaredField.setAccessible(true);
+            return declaredField;
+        } catch (NoSuchFieldException e) {
+        }
+        return getField(clazz.getSuperclass(), name);
+    }
 }
 
 class NacosRegistry implements ApplicationListener<ContextRefreshedEvent>, ServletContextListener {
@@ -63,10 +96,9 @@ class NacosRegistry implements ApplicationListener<ContextRefreshedEvent>, Servl
 
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
-        /*
-        可以这样子读到 tomcat 的启动端口号
-        ((org.apache.catalina.connector.Connector[]) ((StandardService) ((StandardEngine) ((StandardService) ((ApplicationContext) ((ApplicationContextFacade) ((NacosRegistry) this).servletContext).context).service).engine).service).connectors)[0].getPort()*/
-        nacosAutoServiceRegistration.setPort(8080);
+        Connector[] connectors = (Connector[]) ObjectUtil.getFieldValue(servletContext, "context.service.engine.service.connectors");
+
+        nacosAutoServiceRegistration.setPort(connectors[0].getPort());
         nacosAutoServiceRegistration.start();
     }
 }
